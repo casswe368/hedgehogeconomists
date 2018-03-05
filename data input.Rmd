@@ -1,0 +1,12 @@
+---
+title: "get data"
+author: "Cas Sweeney"
+date: "March 2, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ipumsr)
+```
+
