@@ -1,0 +1,30 @@
+---
+title: "main file"
+author: "Hedgehogeconomists"
+date: "April 4, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Anne
+```{r}
+
+```
+
+##Cas
+```{r}
+
+```
+
+##Clara
+```{r}
+
+```
+
+##Susan
+```{r}
+
+```
