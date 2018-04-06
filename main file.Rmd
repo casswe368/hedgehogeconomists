@@ -27,4 +27,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ##Susan
 ```{r}
 #hi
+usa_data2 <-usa_data %>%
+  filter(empstat_factor=="Employed")
 ```
