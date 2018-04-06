@@ -7,16 +7,152 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(Stat2Data)
+library(magrittr)
+library(tidyverse)
+library(dplyr)
 ```
 
+```{r}
+vignette("value-labels", package = "ipumsr")
+vignette("ipums-geography", package = "ipumsr")
+vignette("ipums-cps", package = "ipumsr")
+vignette("ipums-nhgis", package = "ipumsr")
+```
 ##Anna
 ```{r}
-#demo
+# Note that you can pass in the loaded DDI into the `read_ipums_micro()`
+library(ipumsr)
+usa_ddi <- read_ipums_ddi("usa_00005.xml")
+usa_data <- read_ipums_micro(usa_ddi, verbose = FALSE)
+
+#Finding the variables that have a label
+usa_data %>%
+  select_if(is.labelled)
+
+# Convert the labels to factors (and drop the unused levels)
+usa_data <- usa_data %>%
+  mutate(state_factor=droplevels(as_factor(STATEFIP)),
+         metropolitanstatus_factor=droplevels(as_factor(METRO)),
+         sex_factor=droplevels(as_factor(SEX)),
+         race_factor=droplevels(as_factor(RACE)),
+         educationalattainment_factor=droplevels(as_factor(EDUC)),
+         publicorprivateschool_factor=droplevels(as_factor(SCHLTYPE)),
+         empstat_factor=droplevels(as_factor(EMPSTAT)),
+         incwage_factor=droplevels(as_factor(INCWAGE))
+  )
 ```
+
+
+```{r}
+usa_data4 <- usa_data %>%
+  filter(empstat_factor=="Employed")
+```
+
+
+
+```{r}
+tally(~EMPSTAT, data=usa_data4)
+```
+So now we only have people who are employed. 
+
+## Primary Hypothesis
+
+```{r}
+usa_data4<-usa_data4 %>%
+  select(PERNUM,SERIAL,INCWAGE,EDUC,METRO,race_factor,SCHLTYPE, SEX, AGE)
+```
+
+```{r}
+str(usa_data4)
+```
+
+```{r}
+library(mosaic)
+favstats(~INCWAGE, data=usa_data4)
+favstats(~EDUC, data=usa_data4)
+tally(~METRO, data=usa_data4)
+tally(~race_factor, data=usa_data4)
+tally(~SCHLTYPE, data=usa_data4)
+```
+
+## Primary Hypothesis
+
+```{r}
+m1 <- lm(INCWAGE~EDUC+METRO+SEX+AGE+SCHLTYPE+EDUC*METRO, data=usa_data4)
+summary(m1)
+```
+
+This model shows that a one-unit increase in education is associated, on average, with a $6187.28 increase in income, adjusting for other factors in the model.
+
+The additional factors in the model that we thought might confound the relationship between education and income are metro status, sex, age, school type, and the interaction between education and metro status. These all resulted in p-values of less than 0.05, meaning that they all represent statistically significant differences.
+
+## Secondary Hypothesis
+```{r}
+m2 <- lm(INCWAGE~EDUC+race_factor+EDUC*race_factor, data=usa_data4)
+summary(m2)
+```
+
+
+```{r}
+intercepts <- c(coef(m2)["(Intercept)"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorBlack/African American/Negro"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorAmerican Indian or Alaska Native"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorChinese"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorJapanese"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorOther Asian or Pacific Islander"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorOther race, nec"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorTwo major races"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorThree or more major races"])
+
+
+
+slopes <- c(coef(m2)["EDUC"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorBlack/African American/Negro"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorAmerican Indian or Alaska Native"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorChinese"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorJapanese"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther Asian or Pacific Islander"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther race, nec"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorTwo major races"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorThree or more major races"])
+
+#putting these into a new data frame with the slope and transmission indicator variable
+usadata.df <- data.frame(intercepts = intercepts,
+                       slopes = slopes,
+                       Race = levels(usa_data4$race_factor))
+#making the plot
+usaplot1<- ggplot(usa_data4, aes(x = EDUC, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUC', y='Income and Wage (Dollars)') +
+coord_cartesian(ylim = c(0,1000000)) + 
+  geom_abline(aes(intercept = intercepts, 
+                  slope = slopes, 
+                  color = Race), data = usadata.df)
+usaplot1
+
+```
+
+Must filter out the missing/NA because those are being put in as having a million dollars - filtering this out might also output different graphs with a positive relationship 
+
+also consider having education as a factor variable because it doesn't make sense to have it be increasing in 1 unit increments- right now this looks at "1 year change in education" - maybe have four level variable - less than high school, some college - compare different groups - or maybe even remove anything below high school and then it would make sense to have one unit differences 
+
+
+
+
 
 ##Cas
 ```{r}
 #making a change
+```
+
+##Clara
+```{r}
+#testing testing
+```
+
+##Susan
+```{r}
+#hi
 ```
 
 ##Clara
