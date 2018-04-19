@@ -1,0 +1,157 @@
+---
+title: "main file"
+author: "Hedgehogeconomists"
+date: "April 4, 2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(Stat2Data)
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+vignette("value-labels", package = "ipumsr")
+vignette("ipums-geography", package = "ipumsr")
+vignette("ipums-cps", package = "ipumsr")
+vignette("ipums-nhgis", package = "ipumsr")
+```
+
+```{r}
+# Note that you can pass in the loaded DDI into the `read_ipums_micro()`
+library(ipumsr)
+usa_ddi <- read_ipums_ddi("usa_00005.xml")
+usa_data <- read_ipums_micro(usa_ddi, verbose = FALSE)
+
+#Finding the variables that have a label
+usa_data %>%
+  select_if(is.labelled)
+
+# Convert the labels to factors (and drop the unused levels)
+usa_data <- usa_data %>%
+  mutate(state_factor=droplevels(as_factor(STATEFIP)),
+         metropolitanstatus_factor=droplevels(as_factor(METRO)),
+         sex_factor=droplevels(as_factor(SEX)),
+         race_factor=droplevels(as_factor(RACE)),
+         educationalattainment_factor=droplevels(as_factor(EDUC)),
+         publicorprivateschool_factor=droplevels(as_factor(SCHLTYPE)),
+         empstat_factor=droplevels(as_factor(EMPSTAT)),
+         incwage_factor=droplevels(as_factor(INCWAGE))
+  )
+```
+
+
+```{r}
+usa_data4 <- usa_data %>%
+  filter(empstat_factor=="Employed")
+```
+
+
+
+```{r}
+tally(~EMPSTAT, data=usa_data4)
+```
+So now we only have people who are employed. 
+
+## Primary Hypothesis
+
+```{r}
+usa_data4<-usa_data4 %>%
+  select(PERNUM,SERIAL,INCWAGE,EDUC,METRO,race_factor,SCHLTYPE, SEX, AGE)
+```
+
+```{r}
+str(usa_data4)
+```
+
+```{r}
+library(mosaic)
+favstats(~INCWAGE, data=usa_data4)
+favstats(~EDUC, data=usa_data4)
+tally(~METRO, data=usa_data4)
+tally(~race_factor, data=usa_data4)
+tally(~SCHLTYPE, data=usa_data4)
+```
+
+## Primary Hypothesis
+
+```{r}
+m1 <- lm(INCWAGE~EDUC+METRO+SEX+AGE+SCHLTYPE, data=usa_data4)
+summary(m1)
+```
+
+Our primary hypothesis is that an increase in education is correlated with an increase in income. This is tested with a null hypothesis that the beta value associated with education is equal to zero. We included the confounding factors of metro status, sex, age, school type, and an interaction variable in our model.
+
+This model shows that a one-unit increase in education is associated, on average, with a $8,637.023 increase in income, adjusting for other factors in the model. This is not an easily interpretable number because a one-unit increase in education does not always correspond to the same level of increase according to the IPUMS data. This is something that can be worked on to make this beta value have more easily interpretable meaning.
+
+The additional factors in the model that we thought might confound the relationship between education and income are metro status, sex, age, school type, and the interaction between education and metro status.
+A one-unit increase in metro status is associated, on average, with a $2,303.90 decrease in income, adjusting for other factors in the model. This is another variable that is not easily interpretable because a one-unit increase does not correspond to something concrete.
+Women, on average, have an income that is $21,009.07 less than men, adjusting for other factors in the model.
+A one-year increase in age is associated, on average, with a $485.63 increase in income, adjusting for other factors in the model.
+A one-unit increase in school type is associated, on average, with a $11,796.05 decrease in income, adjusting for other factors in the model. This is another variable that is not easily interpretable because a one-unit increase does not correspond to something concrete.
+These beta values all resulted in p-values of less than 0.05, meaning that they all represent statistically significant differences.
+
+Due to the p-value of less than 0.05, we reject the null hypothesis that beta is equal to zero and conclude that it is statistically significantly different from zero. Therefore, education level has a significant impact on income.
+
+## Secondary Hypothesis
+```{r}
+m2 <- lm(INCWAGE~EDUC+race_factor+EDUC*race_factor, data=usa_data4)
+summary(m2)
+```
+
+Our secondary hypothesis is that people of color tend to earn less than white people. This is tested with a null hypothesis that the beta value associated with race is equal to zero. We also included an interaction term between education and race.
+
+In this model, all of the beta terms associated with the race factor and all of the interaction terms between education and race are statistically significant, with p-values of less than 0.05. The model takes white as the default and displays beta values for all other indications of race. Between the race factor itself and the interaction terms, every race category has at least one negative beta value, indicating a lower income.
+
+We did not include confounding variables in this hypothesis.
+
+This model is likely skewed by the fact that values of income that are Missing or N/A are recorded as 999998 or 999999, which likely misrepresents the data.
+
+Due to the p-values of less than 0.05, we reject the null hypothesis and conclude that change in income based on race is statistically significantly different from zero.
+
+```{r}
+intercepts <- c(coef(m2)["(Intercept)"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorBlack/African American/Negro"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorAmerican Indian or Alaska Native"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorChinese"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorJapanese"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorOther Asian or Pacific Islander"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorOther race, nec"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorTwo major races"],
+                coef(m2)["(Intercept)"] + coef(m2)["race_factorThree or more major races"])
+
+
+
+slopes <- c(coef(m2)["EDUC"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorBlack/African American/Negro"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorAmerican Indian or Alaska Native"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorChinese"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorJapanese"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther Asian or Pacific Islander"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther race, nec"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorTwo major races"],
+                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorThree or more major races"])
+
+#putting these into a new data frame with the slope and transmission indicator variable
+usadata.df <- data.frame(intercepts = intercepts,
+                       slopes = slopes,
+                       Race = levels(usa_data4$race_factor))
+#making the plot
+usaplot1<- ggplot(usa_data4, aes(x = EDUC, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUC', y='Income and Wage (Dollars)') +
+coord_cartesian(ylim = c(0,1000000)) + 
+  geom_abline(aes(intercept = intercepts, 
+                  slope = slopes, 
+                  color = Race), data = usadata.df)
+usaplot1
+
+```
+
+Must filter out the missing/NA because those are being put in as having a million dollars - filtering this out might also output different graphs with a positive relationship 
+
+also consider having education as a factor variable because it doesn't make sense to have it be increasing in 1 unit increments- right now this looks at "1 year change in education" - maybe have four level variable - less than high school, some college - compare different groups - or maybe even remove anything below high school and then it would make sense to have one unit differences 
