@@ -64,10 +64,17 @@ So now we only have people who are employed.
 ```{r}
 usa_data4<-usa_data4 %>%
   select(PERNUM,SERIAL,INCWAGE,EDUC,METRO,race_factor,SCHLTYPE, SEX, AGE)
+usa_data_clean <- usa_data4 %>%
+  mutate(EDUCLEVEL = if_else(EDUC == 00, "no schooling",
+                 	if_else(EDUC == 01 | EDUC == 02, "less than high school",
+                 	if_else(EDUC == 03 | EDUC == 04 | EDUC == 05 | EDUC == 06, "high school",
+                 	if_else(EDUC == 07 | EDUC == 08 | EDUC == 09 | EDUC == 10, "less than college",
+                 	if_else(EDUC == 10, "college",
+                 	if_else(EDUC == 11, "more than college", "NA")))))))
 ```
 
 ```{r}
-str(usa_data4)
+str(usa_data_clean)
 ```
 
 ```{r}
@@ -82,7 +89,7 @@ tally(~SCHLTYPE, data=usa_data4)
 ## Primary Hypothesis
 
 ```{r}
-m1 <- lm(INCWAGE~EDUC+METRO+SEX+AGE+SCHLTYPE, data=usa_data4)
+m1 <- lm(INCWAGE~EDUC+METRO+SEX+AGE+SCHLTYPE, data=usa_data_clean)
 summary(m1)
 ```
 
@@ -101,7 +108,7 @@ Due to the p-value of less than 0.05, we reject the null hypothesis that beta is
 
 ## Secondary Hypothesis
 ```{r}
-m2 <- lm(INCWAGE~EDUC+race_factor+EDUC*race_factor, data=usa_data4)
+m2 <- lm(INCWAGE~EDUC+race_factor+EDUC*race_factor, data=usa_data_clean)
 summary(m2)
 ```
 
@@ -141,9 +148,9 @@ slopes <- c(coef(m2)["EDUC"],
 #putting these into a new data frame with the slope and transmission indicator variable
 usadata.df <- data.frame(intercepts = intercepts,
                        slopes = slopes,
-                       Race = levels(usa_data4$race_factor))
+                       Race = levels(usa_data_clean$race_factor))
 #making the plot
-usaplot1<- ggplot(usa_data4, aes(x = EDUC, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUC', y='Income and Wage (Dollars)') +
+usaplot1<- ggplot(usa_data_clean, aes(x = EDUC, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUC', y='Income and Wage (Dollars)') +
 coord_cartesian(ylim = c(0,1000000)) + 
   geom_abline(aes(intercept = intercepts, 
                   slope = slopes, 
