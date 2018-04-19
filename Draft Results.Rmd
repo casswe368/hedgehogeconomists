@@ -65,12 +65,14 @@ So now we only have people who are employed.
 usa_data4<-usa_data4 %>%
   select(PERNUM,SERIAL,INCWAGE,EDUC,METRO,race_factor,SCHLTYPE, SEX, AGE)
 usa_data_clean <- usa_data4 %>%
-  mutate(EDUCLEVEL = if_else(EDUC == 00, "no schooling",
-                 	if_else(EDUC == 01 | EDUC == 02, "less than high school",
-                 	if_else(EDUC == 03 | EDUC == 04 | EDUC == 05 | EDUC == 06, "high school",
-                 	if_else(EDUC == 07 | EDUC == 08 | EDUC == 09 | EDUC == 10, "less than college",
-                 	if_else(EDUC == 10, "college",
-                 	if_else(EDUC == 11, "more than college", "NA")))))))
+  mutate(EDUCLEVEL = if_else(EDUC %in% c(00, 01, 02, 03, 04, 05), "less than high school",
+                 	if_else(EDUC %in% c(06, 07, 08, 09), "finished high school",
+                 	if_else(EDUC %in% c(10, 11), "finished college", "NA"))))
+usa_data_clean<-usa_data_clean %>%
+  mutate(RACE4 <- if_else(race_factor == "White", "White",
+                          if_else(race_factor == "Black/African American/Negro", "Black",
+                                  if_else(race_factor %in% c("Chinese", "Japanese", "Other Asian or Pacific Islander"), "Asian", 
+                                                             if_else(race_factor %in% c("American Indian or Alaska Native", "Other race, nec", "Two major races", "Three or more major races"), "Other", NA)))))
 ```
 
 ```{r}
@@ -80,16 +82,16 @@ str(usa_data_clean)
 ```{r}
 library(mosaic)
 favstats(~INCWAGE, data=usa_data4)
-favstats(~EDUC, data=usa_data4)
+favstats(~EDUCLEVEL, data=usa_data4)
 tally(~METRO, data=usa_data4)
-tally(~race_factor, data=usa_data4)
+tally(~RACE4, data=usa_data4)
 tally(~SCHLTYPE, data=usa_data4)
 ```
 
 ## Primary Hypothesis
 
 ```{r}
-m1 <- lm(INCWAGE~EDUC+METRO+SEX+AGE+SCHLTYPE, data=usa_data_clean)
+m1 <- lm(INCWAGE~EDUCLEVEL+METRO+SEX+AGE+SCHLTYPE, data=usa_data_clean)
 summary(m1)
 ```
 
@@ -108,7 +110,7 @@ Due to the p-value of less than 0.05, we reject the null hypothesis that beta is
 
 ## Secondary Hypothesis
 ```{r}
-m2 <- lm(INCWAGE~EDUC+race_factor+EDUC*race_factor, data=usa_data_clean)
+m2 <- lm(INCWAGE~EDUCLEVEL+RACE4+EDUCLEVEL*RACE4, data=usa_data_clean)
 summary(m2)
 ```
 
@@ -135,13 +137,13 @@ intercepts <- c(coef(m2)["(Intercept)"],
 
 
 
-slopes <- c(coef(m2)["EDUC"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorBlack/African American/Negro"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorAmerican Indian or Alaska Native"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorChinese"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorJapanese"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther Asian or Pacific Islander"],
-                coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorOther race, nec"],
+slopes <- c(coef(m2)["EDUCLEVEL"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorBlack/African American/Negro"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorAmerican Indian or Alaska Native"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorChinese"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorJapanese"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorOther Asian or Pacific Islander"],
+                coef(m2)["EDUCLEVEL"] + coef(m2)["EDUC:race_factorOther race, nec"],
                 coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorTwo major races"],
                 coef(m2)["EDUC"] + coef(m2)["EDUC:race_factorThree or more major races"])
 
@@ -150,7 +152,7 @@ usadata.df <- data.frame(intercepts = intercepts,
                        slopes = slopes,
                        Race = levels(usa_data_clean$race_factor))
 #making the plot
-usaplot1<- ggplot(usa_data_clean, aes(x = EDUC, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUC', y='Income and Wage (Dollars)') +
+usaplot1<- ggplot(usa_data_clean, aes(x = EDUCLEVEL, y = INCWAGE)) + geom_point(color="grey", alpha = .1) + labs( x= 'EDUCLEVEL', y='Income and Wage (Dollars)') +
 coord_cartesian(ylim = c(0,1000000)) + 
   geom_abline(aes(intercept = intercepts, 
                   slope = slopes, 
