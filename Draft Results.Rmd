@@ -3,6 +3,7 @@ title: "main file"
 author: "Hedgehogeconomists"
 date: "April 4, 2018"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -167,6 +168,6 @@ Must filter out the missing/NA because those are being put in as having a millio
 also consider having education as a factor variable because it doesn't make sense to have it be increasing in 1 unit increments- right now this looks at "1 year change in education" - maybe have four level variable - less than high school, some college - compare different groups - or maybe even remove anything below high school and then it would make sense to have one unit differences 
 
 ```{r}
-stargazer(m1)
+stargazer(m1, m2, type="text", ci=TRUE, single.row=TRUE, digits = 0, title="The comparison of education and income")
 ```
 
