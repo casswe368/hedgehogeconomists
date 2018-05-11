@@ -88,12 +88,19 @@ favstats(~EDUCLEVEL, data=usa_data_clean)
 tally(~METRO, data=usa_data_clean)
 tally(~RACE4, data=usa_data_clean)
 tally(~SCHLTYPE, data=usa_data_clean)
+
+usa_data_clean<-usa_data_clean %>%
+  mutate(Education = as.factor(EDUCLEVEL)) %>%
+  mutate(Race = as.factor(RACE4))
+
+usa_data_clean$Race <- relevel(usa_data_clean$Race, ref = "White")
+usa_data_clean$Education <- relevel(usa_data_clean$Education, ref = "less than high school")
 ```
 
 ## Primary Hypothesis
 
 ```{r}
-m1 <- lm(INCWAGE~EDUCLEVEL+METRO+SEX+AGE+SCHLTYPE, data=usa_data_clean)
+m1 <- lm(INCWAGE~Education+METRO+SEX+AGE+SCHLTYPE, data=usa_data_clean)
 summary(m1)
 ```
 
@@ -112,7 +119,7 @@ Due to the p-value of less than 0.05, we reject the null hypothesis that beta is
 
 ## Secondary Hypothesis
 ```{r}
-m2 <- lm(INCWAGE~EDUCLEVEL+RACE4+EDUCLEVEL*RACE4, data=usa_data_clean)
+m2 <- lm(INCWAGE~Education+Race+Education*Race, data=usa_data_clean)
 summary(m2)
 ```
 
